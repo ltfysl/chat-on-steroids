@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BotController;
 use App\Http\Controllers\BotDeploymentController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -26,4 +28,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/bots/{bot}/conversations', [ConversationController::class, 'store'])->name('bots.conversations.store');
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store'])->middleware('throttle:bot-messages')->name('messages.store');
+    Route::get('/approvals', [ApprovalController::class, 'index'])->name('approvals.index');
+    Route::patch('/approvals/{approvalRequest}', [ApprovalController::class, 'update'])->name('approvals.update');
+    Route::get('/team', [TeamController::class, 'index'])->name('team.index');
+    Route::patch('/team/{user}', [TeamController::class, 'update'])->name('team.update');
 });
