@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Message;
 use App\Models\MessageChunk;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -16,5 +17,14 @@ final class MessageChunkAppended implements ShouldBroadcastNow
     public function __construct(public readonly MessageChunk $chunk, public readonly int $workspaceId, public readonly string $conversationPublicId) {}
     public function broadcastOn(): array { return [new PrivateChannel('workspace.'.$this->workspaceId), new PrivateChannel('conversation.'.$this->conversationPublicId)]; }
     public function broadcastAs(): string { return 'message.chunk'; }
-    public function broadcastWith(): array { return ['message_id' => $this->chunk->message_id, 'sequence' => $this->chunk->sequence, 'kind' => $this->chunk->kind, 'delta' => $this->chunk->delta]; }
+    public function broadcastWith(): array
+    {
+        return [
+            'message_id' => $this->chunk->message_id,
+            'message_public_id' => Message::query()->whereKey($this->chunk->message_id)->value('public_id'),
+            'sequence' => $this->chunk->sequence,
+            'kind' => $this->chunk->kind,
+            'delta' => $this->chunk->delta,
+        ];
+    }
 }
