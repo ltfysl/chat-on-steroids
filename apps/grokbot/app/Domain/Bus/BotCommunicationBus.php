@@ -2,6 +2,7 @@
 
 namespace App\Domain\Bus;
 
+use App\Events\BotBusMessagePublished;
 use App\Models\Bot;
 use App\Models\BotBusMessage;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -16,21 +17,27 @@ final class BotCommunicationBus
             throw new AuthorizationException('Bots may not communicate across workspace boundaries.');
         }
 
-        return BotBusMessage::query()->create([
-            'public_id' => (string) Str::ulid(), 'workspace_id' => $sender->workspace_id,
-            'sender_bot_id' => $sender->id, 'recipient_bot_id' => $recipient->id,
-            'topic' => $topic, 'correlation_id' => $correlationId ?? (string) Str::uuid(),
-            'payload' => $payload, 'status' => 'queued',
-        ]);
+        return $this->persist($sender, $topic, $payload, $recipient, $correlationId);
     }
 
     /** @param array<string,mixed> $payload */
     public function publish(Bot $sender, string $topic, array $payload, ?string $correlationId = null): BotBusMessage
     {
-        return BotBusMessage::query()->create([
+        return $this->persist($sender, $topic, $payload, null, $correlationId);
+    }
+
+    /** @param array<string,mixed> $payload */
+    private function persist(Bot $sender, string $topic, array $payload, ?Bot $recipient, ?string $correlationId): BotBusMessage
+    {
+        $message = BotBusMessage::query()->create([
             'public_id' => (string) Str::ulid(), 'workspace_id' => $sender->workspace_id,
-            'sender_bot_id' => $sender->id, 'recipient_bot_id' => null, 'topic' => $topic,
-            'correlation_id' => $correlationId ?? (string) Str::uuid(), 'payload' => $payload, 'status' => 'queued',
+            'sender_bot_id' => $sender->id, 'recipient_bot_id' => $recipient?->id,
+            'topic' => $topic, 'correlation_id' => $correlationId ?? (string) Str::uuid(),
+            'payload' => $payload, 'status' => 'queued',
         ]);
+
+        BotBusMessagePublished::dispatch($message);
+
+        return $message;
     }
 }
